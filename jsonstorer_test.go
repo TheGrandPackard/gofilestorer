@@ -89,6 +89,38 @@ func TestJSONStorer(t *testing.T) {
 	assert.Equal(t, "new", read[1].Name)
 	assert.NotEmpty(t, read[1].CreatedAt)
 
+	// Upsert - Update
+	data.Name = "upserted"
+	err = s.Upsert(data)
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(2), data.ID)
+	assert.Equal(t, "upserted", data.Name)
+	assert.NotEmpty(t, data.CreatedAt)
+
+	read, err = s.Read()
+	assert.NoError(t, err)
+	assert.NotNil(t, read)
+	assert.Len(t, read, 2)
+	assert.Equal(t, uint64(2), read[1].ID)
+	assert.Equal(t, "upserted", read[1].Name)
+	assert.NotEmpty(t, read[1].CreatedAt)
+
+	// Upsert - Insert
+	upsert := &testJSONData{Name: "upsert"}
+	err = s.Upsert(upsert)
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(3), upsert.ID)
+	assert.Equal(t, "upsert", upsert.Name)
+	assert.NotEmpty(t, upsert.CreatedAt)
+
+	read, err = s.Read()
+	assert.NoError(t, err)
+	assert.NotNil(t, read)
+	assert.Len(t, read, 3)
+	assert.Equal(t, uint64(3), read[2].ID)
+	assert.Equal(t, "upsert", read[2].Name)
+	assert.NotEmpty(t, read[2].CreatedAt)
+
 	// Update
 	data.Name = "updated"
 	err = s.Update(data)
@@ -97,7 +129,7 @@ func TestJSONStorer(t *testing.T) {
 	read, err = s.Read()
 	assert.NoError(t, err)
 	assert.NotNil(t, read)
-	assert.Len(t, read, 2)
+	assert.Len(t, read, 3)
 	assert.Equal(t, uint64(2), read[1].ID)
 	assert.Equal(t, "updated", read[1].Name)
 	assert.NotEmpty(t, read[1].CreatedAt)
@@ -109,7 +141,7 @@ func TestJSONStorer(t *testing.T) {
 	read, err = s.Read()
 	assert.NoError(t, err)
 	assert.NotNil(t, read)
-	assert.Len(t, read, 1)
+	assert.Len(t, read, 2)
 
 	// Update - Not Exists
 	err = s.Update(data)

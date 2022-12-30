@@ -116,3 +116,23 @@ func (s *csvStorer[D]) Delete(id uint64) error {
 
 	return ErrorDataNotExists
 }
+
+func (s *csvStorer[D]) Upsert(data D) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	// Attempt update
+	for i, record := range s.data {
+		if record.GetID() == data.GetID() {
+			s.data[i] = data
+			return s.writeFile()
+		}
+	}
+
+	// Fall back to create
+	data.SetID(uint64(len(s.data) + 1))
+	data.SetCreatedAt(time.Now())
+	s.data = append(s.data, data)
+
+	return s.writeFile()
+}

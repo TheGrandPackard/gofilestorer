@@ -12,6 +12,7 @@ type Storer[D data] interface {
 	Read() ([]D, error)
 	Update(D) error
 	Delete(uint64) error
+	Upsert(D) error
 
 	readFile() error
 	writeFile() error
@@ -22,6 +23,11 @@ type storer[D data] struct {
 	fileName string
 	mutex    sync.RWMutex
 	data     []D
+}
+
+type Data struct {
+	ID        uint64    `json:"id" csv:"id"`
+	CreatedAt time.Time `json:"created_at" csv:"created_at"`
 }
 
 type data interface {

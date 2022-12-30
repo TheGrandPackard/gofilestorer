@@ -7,18 +7,24 @@ import (
 	"github.com/spf13/afero"
 )
 
-type Storer[D data] interface {
+type Reader[D any] interface {
+	readFile() error
+
+	Read() ([]D, error)
+}
+
+type Writer[D any] interface {
+	readFile() error
+	writeFile() error
+
 	Create(D) error
 	Read() ([]D, error)
 	Update(D) error
 	Delete(uint64) error
 	Upsert(D) error
-
-	readFile() error
-	writeFile() error
 }
 
-type storer[D data] struct {
+type storer[D any] struct {
 	fs       afero.Fs
 	fileName string
 	mutex    sync.RWMutex
@@ -30,10 +36,12 @@ type Data struct {
 	CreatedAt time.Time `json:"created_at" csv:"created_at"`
 }
 
-type data interface {
+type reader interface {
+	GetID() uint64
+}
+
+type writer interface {
 	GetID() uint64
 	SetID(uint64)
-
-	GetCreatedAt() time.Time
 	SetCreatedAt(time.Time)
 }

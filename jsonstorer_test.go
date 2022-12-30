@@ -22,10 +22,6 @@ func (d *testJSONData) SetID(id uint64) {
 	d.ID = id
 }
 
-func (d *testJSONData) GetCreatedAt() time.Time {
-	return d.CreatedAt
-}
-
 func (d *testJSONData) SetCreatedAt(createdAt time.Time) {
 	d.CreatedAt = createdAt
 }
@@ -49,21 +45,21 @@ func getJSONFilesystem(t *testing.T) afero.Fs {
 	return fs
 }
 
-func TestJSONStorer(t *testing.T) {
+func TestJSONReader(t *testing.T) {
 	fs := getJSONFilesystem(t)
 
 	// Read non-existant file
-	s, err := NewJSONStorer[*testJSONData](fs, "./foobar.json")
+	s, err := NewJSONReader[*testJSONData](fs, "./foobar.json")
 	assert.Error(t, err)
 	assert.Nil(t, s)
 
 	// Read invalid file
-	s, err = NewJSONStorer[*testJSONData](fs, "./data/invalid.json")
+	s, err = NewJSONReader[*testJSONData](fs, "./data/invalid.json")
 	assert.Error(t, err)
 	assert.Nil(t, s)
 
 	// Read test file
-	s, err = NewJSONStorer[*testJSONData](fs, "./data.json")
+	s, err = NewJSONReader[*testJSONData](fs, "./data.json")
 	assert.NoError(t, err)
 	assert.NotNil(t, s)
 
@@ -72,6 +68,27 @@ func TestJSONStorer(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, read)
 	assert.Len(t, read, 1)
+	assert.Equal(t, uint64(1), read[0].ID)
+	assert.Equal(t, "Foobar", read[0].Name)
+	assert.NotEmpty(t, read[0].CreatedAt)
+}
+
+func TestJSONWriter(t *testing.T) {
+	fs := getJSONFilesystem(t)
+
+	// Read test file
+	s, err := NewJSONWriter[*testJSONData](fs, "./data.json")
+	assert.NoError(t, err)
+	assert.NotNil(t, s)
+
+	// Read
+	read, err := s.Read()
+	assert.NoError(t, err)
+	assert.NotNil(t, read)
+	assert.Len(t, read, 1)
+	assert.Equal(t, uint64(1), read[0].ID)
+	assert.Equal(t, "Foobar", read[0].Name)
+	assert.NotEmpty(t, read[0].CreatedAt)
 
 	// Create
 	data := &testJSONData{Name: "new"}

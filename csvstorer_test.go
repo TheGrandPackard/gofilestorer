@@ -44,21 +44,39 @@ func getCSVFilesystem(t *testing.T) afero.Fs {
 	return fs
 }
 
-func TestCSVStorer(t *testing.T) {
+func TestCSVReader(t *testing.T) {
 	fs := getCSVFilesystem(t)
 
 	// Read non-existant file
-	s, err := NewCSVStorer[*testCSVData](fs, "./foobar.json")
+	s, err := NewCSVReader[*testCSVData](fs, "./foobar.json")
 	assert.Error(t, err)
 	assert.Nil(t, s)
 
 	// Read invalid file
-	s, err = NewCSVStorer[*testCSVData](fs, "./data/invalid.json")
+	s, err = NewCSVReader[*testCSVData](fs, "./data/invalid.json")
 	assert.Error(t, err)
 	assert.Nil(t, s)
 
 	// Read test file
-	s, err = NewCSVStorer[*testCSVData](fs, "./data.json")
+	s, err = NewCSVReader[*testCSVData](fs, "./data.json")
+	assert.NoError(t, err)
+	assert.NotNil(t, s)
+
+	// Read
+	read, err := s.Read()
+	assert.NoError(t, err)
+	assert.NotNil(t, read)
+	assert.Len(t, read, 1)
+	assert.Equal(t, uint64(1), read[0].ID)
+	assert.Equal(t, "Foobar", read[0].Name)
+	assert.NotEmpty(t, read[0].CreatedAt)
+}
+
+func TestCSVStorer(t *testing.T) {
+	fs := getCSVFilesystem(t)
+
+	// Read test file
+	s, err := NewCSVWriter[*testCSVData](fs, "./data.json")
 	assert.NoError(t, err)
 	assert.NotNil(t, s)
 

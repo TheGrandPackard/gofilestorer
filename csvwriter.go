@@ -1,23 +1,25 @@
 package filestorer
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/spf13/afero"
+	"github.com/trimmer-io/go-csv"
 )
 
-type jsonStorer[D data] struct {
-	storer[D]
+type csvWriter[D writer] struct {
+	csvReader[D]
 }
 
 // Create a new Timecard storer that is backed by a JSON file
-func NewJSONStorer[D data](fs afero.Fs, fileName string) (Storer[D], error) {
-	s := &jsonStorer[D]{
-		storer: storer[D]{
-			fs:       fs,
-			fileName: fileName,
+func NewCSVWriter[D writer](fs afero.Fs, fileName string) (Writer[D], error) {
+	s := &csvWriter[D]{
+		csvReader: csvReader[D]{
+			storer: storer[D]{
+				fs:       fs,
+				fileName: fileName,
+			},
 		},
 	}
 
@@ -31,30 +33,10 @@ func NewJSONStorer[D data](fs afero.Fs, fileName string) (Storer[D], error) {
 	return s, nil
 }
 
-// read the file into the storer
-func (s *jsonStorer[D]) readFile() error {
-	// Read file from disk
-	dataBytes, err := afero.ReadFile(s.fs, s.fileName)
-	if err != nil {
-		return fmt.Errorf("error reading file: %w", err)
-	}
-
-	// Unmarshal JSON to struct
-	data := []D{}
-	err = json.Unmarshal(dataBytes, &data)
-	if err != nil {
-		return fmt.Errorf("error unmarshaling data: %w", err)
-	}
-
-	s.data = data
-
-	return nil
-}
-
 // write the file from the storer
-func (s *jsonStorer[D]) writeFile() error {
+func (s *csvWriter[D]) writeFile() error {
 	// Marshal JSON to bytes
-	dataBytes, err := json.Marshal(s.data)
+	dataBytes, err := csv.Marshal(s.data)
 	if err != nil {
 		return fmt.Errorf("error marshaling data: %w", err)
 	}
@@ -68,7 +50,7 @@ func (s *jsonStorer[D]) writeFile() error {
 }
 
 // create a new record in the storer and write changes to file
-func (s *jsonStorer[D]) Create(data D) error {
+func (s *csvWriter[D]) Create(data D) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -79,16 +61,8 @@ func (s *jsonStorer[D]) Create(data D) error {
 	return s.writeFile()
 }
 
-// read all records from the storer
-func (s *jsonStorer[D]) Read() ([]D, error) {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-
-	return s.data, nil
-}
-
 // update an existing record in the storer and write changes to file
-func (s *jsonStorer[D]) Update(data D) error {
+func (s *csvWriter[D]) Update(data D) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -103,7 +77,7 @@ func (s *jsonStorer[D]) Update(data D) error {
 }
 
 // delete an existing record in the storer and write changes to file
-func (s *jsonStorer[D]) Delete(id uint64) error {
+func (s *csvWriter[D]) Delete(id uint64) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -117,7 +91,7 @@ func (s *jsonStorer[D]) Delete(id uint64) error {
 	return ErrorDataNotExists
 }
 
-func (s *jsonStorer[D]) Upsert(data D) error {
+func (s *csvWriter[D]) Upsert(data D) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 

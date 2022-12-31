@@ -11,7 +11,7 @@ type jsonReader[D reader] struct {
 	storer[D]
 }
 
-// Create a new Timecard storer that is backed by a JSON file
+// Create a new reader that is backed by a JSON file
 func NewJSONReader[D reader](fs afero.Fs, fileName string) (Reader[D], error) {
 	s := &jsonReader[D]{
 		storer: storer[D]{

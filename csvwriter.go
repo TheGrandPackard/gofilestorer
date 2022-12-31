@@ -12,7 +12,7 @@ type csvWriter[D writer] struct {
 	csvReader[D]
 }
 
-// Create a new Timecard storer that is backed by a JSON file
+// Create a new writer that is backed by a CSV file
 func NewCSVWriter[D writer](fs afero.Fs, fileName string) (Writer[D], error) {
 	s := &csvWriter[D]{
 		csvReader: csvReader[D]{
@@ -54,7 +54,9 @@ func (s *csvWriter[D]) Create(data D) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	data.SetID(uint64(len(s.data) + 1))
+	if data.GetID() == 0 {
+		data.SetID(uint64(len(s.data) + 1))
+	}
 	data.SetCreatedAt(time.Now())
 	s.data = append(s.data, data)
 
@@ -104,7 +106,9 @@ func (s *csvWriter[D]) Upsert(data D) error {
 	}
 
 	// Fall back to create
-	data.SetID(uint64(len(s.data) + 1))
+	if data.GetID() == 0 {
+		data.SetID(uint64(len(s.data) + 1))
+	}
 	data.SetCreatedAt(time.Now())
 	s.data = append(s.data, data)
 

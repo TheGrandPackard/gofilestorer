@@ -1,6 +1,7 @@
 package filestorer
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/spf13/afero"
@@ -9,15 +10,17 @@ import (
 
 type csvReader[D reader] struct {
 	storer[D]
+	separator rune
 }
 
-// Create a new Timecard storer that is backed by a JSON file
-func NewCSVReader[D reader](fs afero.Fs, fileName string) (Reader[D], error) {
+// Create a new reader that is backed by a CSV file
+func NewCSVReader[D reader](fs afero.Fs, fileName string, separator rune) (Reader[D], error) {
 	s := &csvReader[D]{
 		storer: storer[D]{
 			fs:       fs,
 			fileName: fileName,
 		},
+		separator: separator,
 	}
 
 	// Read file
@@ -40,7 +43,9 @@ func (s *csvReader[D]) readFile() error {
 
 	// Unmarshal JSON to struct
 	data := []D{}
-	err = csv.Unmarshal(dataBytes, &data)
+	decoder := csv.NewDecoder(bytes.NewReader(dataBytes))
+	decoder.Separator(s.separator)
+	err = decoder.Decode(&data)
 	if err != nil {
 		return fmt.Errorf("error unmarshaling data: %w", err)
 	}

@@ -35,8 +35,8 @@ func getCSVFilesystem(t *testing.T) afero.Fs {
 	// create test files and directories
 	err := fs.MkdirAll("data", 0755)
 	assert.NoError(t, err)
-	err = afero.WriteFile(fs, "data.json", []byte(`id,created_at,name
-1,2022-12-27T12:45:51.8347046-08:00,Foobar`), 0644)
+	err = afero.WriteFile(fs, "data.json", []byte(`id;created_at;name
+1;2022-12-27T12:45:51.8347046-08:00;Foobar`), 0644)
 	assert.NoError(t, err)
 	err = afero.WriteFile(fs, "invalid.json", []byte(``), 0644)
 	assert.NoError(t, err)
@@ -48,17 +48,17 @@ func TestCSVReader(t *testing.T) {
 	fs := getCSVFilesystem(t)
 
 	// Read non-existant file
-	s, err := NewCSVReader[*testCSVData](fs, "./foobar.json")
+	s, err := NewCSVReader[*testCSVData](fs, "./foobar.json", ';')
 	assert.Error(t, err)
 	assert.Nil(t, s)
 
 	// Read invalid file
-	s, err = NewCSVReader[*testCSVData](fs, "./data/invalid.json")
+	s, err = NewCSVReader[*testCSVData](fs, "./data/invalid.json", ';')
 	assert.Error(t, err)
 	assert.Nil(t, s)
 
 	// Read test file
-	s, err = NewCSVReader[*testCSVData](fs, "./data.json")
+	s, err = NewCSVReader[*testCSVData](fs, "./data.json", ';')
 	assert.NoError(t, err)
 	assert.NotNil(t, s)
 

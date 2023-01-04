@@ -13,13 +13,14 @@ type csvWriter[D writer] struct {
 }
 
 // Create a new writer that is backed by a CSV file
-func NewCSVWriter[D writer](fs afero.Fs, fileName string) (Writer[D], error) {
+func NewCSVWriter[D writer](fs afero.Fs, fileName string, separator rune) (Writer[D], error) {
 	s := &csvWriter[D]{
 		csvReader: csvReader[D]{
 			storer: storer[D]{
 				fs:       fs,
 				fileName: fileName,
 			},
+			separator: separator,
 		},
 	}
 

@@ -76,8 +76,18 @@ func TestJSONReader(t *testing.T) {
 func TestJSONWriter(t *testing.T) {
 	fs := getJSONFilesystem(t)
 
+	// Read non-existant file
+	s, err := NewJSONWriter[*testJSONData](fs, "./foobar.json")
+	assert.Error(t, err)
+	assert.Nil(t, s)
+
+	// Read invalid file
+	s, err = NewJSONWriter[*testJSONData](fs, "./data/invalid.json")
+	assert.Error(t, err)
+	assert.Nil(t, s)
+
 	// Read test file
-	s, err := NewJSONWriter[*testJSONData](fs, "./data.json")
+	s, err = NewJSONWriter[*testJSONData](fs, "./data.json")
 	assert.NoError(t, err)
 	assert.NotNil(t, s)
 

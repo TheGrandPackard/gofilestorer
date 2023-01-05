@@ -1,4 +1,4 @@
-module github.com/thegrandpackard/go-filestorer
+module github.com/thegrandpackard/gofilestorer
 
 go 1.19
 

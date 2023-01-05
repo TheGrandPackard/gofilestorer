@@ -1,4 +1,4 @@
-package filestorer
+package gofilestorer
 
 import (
 	"testing"

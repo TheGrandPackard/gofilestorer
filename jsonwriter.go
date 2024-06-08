@@ -51,7 +51,7 @@ func (s *jsonWriter[K, V]) writeFile() error {
 }
 
 // create a new record in the storer and write changes to file
-func (s *jsonWriter[K, V]) Create(data V) error {
+func (s *jsonWriter[K, V]) Create(data V) (V, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -59,24 +59,28 @@ func (s *jsonWriter[K, V]) Create(data V) error {
 	data.SetID(id)
 	data.SetCreatedAt(time.Now())
 	s.data = append(s.data, data)
-	s.dataMap[id] = &data
+	s.dataMap[id] = data
 
-	return s.writeFile()
+	return data, s.writeFile()
 }
 
 // update an existing record in the storer and write changes to file
-func (s *jsonWriter[K, V]) Update(id K, data V) error {
+func (s *jsonWriter[K, V]) Update(id K, data V) (V, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
 	_, ok := s.dataMap[id]
 	if ok {
 		data.SetUpdatedAt(time.Now())
-		s.dataMap[data.GetID()] = &data
-		return s.writeFile()
+		s.dataMap[data.GetID()] = data
+		for _, d := range s.data {
+			if d.GetID() == id {
+				return data, s.writeFile()
+			}
+		}
 	}
 
-	return ErrorDataNotExists
+	return *new(V), ErrorDataNotExists
 }
 
 // delete an existing record in the storer and write changes to file

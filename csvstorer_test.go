@@ -111,7 +111,7 @@ func TestCSVWriter(t *testing.T) {
 
 	// Create
 	data := &testCSVData{Name: "new"}
-	err = s.Create(data)
+	_, err = s.Create(data)
 	assert.NoError(t, err)
 	assert.Equal(t, "new", data.Name)
 	assert.NotEmpty(t, data.ID)
@@ -127,7 +127,7 @@ func TestCSVWriter(t *testing.T) {
 
 	// Update
 	data.Name = "updated"
-	err = s.Update(data.GetID(), data)
+	_, err = s.Update(data.GetID(), data)
 	assert.NoError(t, err)
 
 	read, err = s.ReadAll()
@@ -148,7 +148,7 @@ func TestCSVWriter(t *testing.T) {
 	assert.Len(t, read, 1)
 
 	// Update - Not Exists
-	err = s.Update(data.GetID(), data)
+	_, err = s.Update(data.GetID(), data)
 	assert.Error(t, err)
 
 	// Delete - Not Exists

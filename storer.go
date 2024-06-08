@@ -12,7 +12,7 @@ type storer[K comparable, V any] struct {
 	fileName  string
 	mutex     sync.RWMutex
 	data      []V
-	dataMap   map[K]*V
+	dataMap   map[K]V
 	newIDFunc func(data []V) K
 }
 
@@ -20,7 +20,7 @@ type Reader[K comparable, V reader[K]] interface {
 	readFile() error
 
 	ReadAll() ([]V, error)
-	ReadOne(K) (*V, error)
+	ReadOne(K) (V, error)
 }
 
 type reader[K comparable] interface {
@@ -35,7 +35,7 @@ func (s *storer[K, V]) ReadAll() ([]V, error) {
 }
 
 // read a record from the storer
-func (s *storer[K, V]) ReadOne(id K) (*V, error) {
+func (s *storer[K, V]) ReadOne(id K) (V, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -45,15 +45,15 @@ func (s *storer[K, V]) ReadOne(id K) (*V, error) {
 		return s.dataMap[id], nil
 	}
 
-	return nil, ErrorDataNotExists
+	return *new(V), ErrorDataNotExists
 }
 
 type Writer[K comparable, V writer[K]] interface {
 	Reader[K, V]
 	writeFile() error
 
-	Create(V) error
-	Update(K, V) error
+	Create(V) (V, error)
+	Update(K, V) (V, error)
 	Delete(K) error
 }
 

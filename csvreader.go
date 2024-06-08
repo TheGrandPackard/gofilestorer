@@ -53,9 +53,9 @@ func (s *csvReader[K, V]) readFile() error {
 	s.data = data
 
 	// Create map of data
-	dataMap := map[K]*V{}
+	dataMap := map[K]V{}
 	for _, record := range data {
-		dataMap[record.GetID()] = &record
+		dataMap[record.GetID()] = record
 	}
 	s.dataMap = dataMap
 

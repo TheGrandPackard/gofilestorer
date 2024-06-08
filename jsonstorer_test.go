@@ -120,7 +120,7 @@ func TestJSONWriterUUID(t *testing.T) {
 
 	// Create
 	data := &testJSONDataUUID{Name: "new"}
-	err = s.Create(data)
+	_, err = s.Create(data)
 	assert.NoError(t, err)
 	assert.NoError(t, uuid.Validate(data.ID.String()))
 	assert.Equal(t, "new", data.Name)
@@ -136,7 +136,7 @@ func TestJSONWriterUUID(t *testing.T) {
 
 	// Update
 	data.Name = "updated"
-	err = s.Update(data.GetID(), data)
+	_, err = s.Update(data.GetID(), data)
 	assert.NoError(t, err)
 
 	read, err = s.ReadAll()
@@ -157,7 +157,7 @@ func TestJSONWriterUUID(t *testing.T) {
 	assert.Len(t, read, 1)
 
 	// Update - Not Exists
-	err = s.Update(data.GetID(), data)
+	_, err = s.Update(data.GetID(), data)
 	assert.Error(t, err)
 
 	// Delete - Not Exists
@@ -221,7 +221,7 @@ func TestJSONWriterInt64(t *testing.T) {
 
 	// Create
 	data := &testJSONDataInt64{Name: "new"}
-	err = s.Create(data)
+	_, err = s.Create(data)
 	assert.NoError(t, err)
 	assert.Equal(t, "new", data.Name)
 	assert.Equal(t, int64(2), data.ID)
@@ -237,7 +237,7 @@ func TestJSONWriterInt64(t *testing.T) {
 
 	// Update
 	data.Name = "updated"
-	err = s.Update(data.GetID(), data)
+	_, err = s.Update(data.GetID(), data)
 	assert.NoError(t, err)
 
 	read, err = s.ReadAll()
@@ -258,7 +258,7 @@ func TestJSONWriterInt64(t *testing.T) {
 	assert.Len(t, read, 1)
 
 	// Update - Not Exists
-	err = s.Update(data.GetID(), data)
+	_, err = s.Update(data.GetID(), data)
 	assert.Error(t, err)
 
 	// Delete - Not Exists

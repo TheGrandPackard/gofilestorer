@@ -4,26 +4,32 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 )
 
 type testJSONData struct {
-	ID        uint64    `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	Name      string    `json:"name"`
+	ID        uuid.UUID  `json:"id"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt *time.Time `json:"updated_at"`
+	Name      string     `json:"name"`
 }
 
-func (d *testJSONData) GetID() uint64 {
+func (d *testJSONData) GetID() uuid.UUID {
 	return d.ID
 }
 
-func (d *testJSONData) SetID(id uint64) {
+func (d *testJSONData) SetID(id uuid.UUID) {
 	d.ID = id
 }
 
 func (d *testJSONData) SetCreatedAt(createdAt time.Time) {
 	d.CreatedAt = createdAt
+}
+
+func (d *testJSONData) SetUpdatedAt(updatedAt time.Time) {
+	d.UpdatedAt = &updatedAt
 }
 
 func getJSONFilesystem(t *testing.T) afero.Fs {
@@ -33,7 +39,7 @@ func getJSONFilesystem(t *testing.T) afero.Fs {
 	assert.NoError(t, err)
 	err = afero.WriteFile(fs, "data.json", []byte(`[
 		{
-			"id": 1,
+			"id": "e21ab9b3-bb4e-4921-815b-41de7980c5da",
 			"created_at": "2022-12-27T12:45:51.8347046-08:00",
 			"name": "Foobar"
 		}
@@ -64,12 +70,12 @@ func TestJSONReader(t *testing.T) {
 	assert.NotNil(t, s)
 
 	// Read
-	read, err := s.Read()
+	read, err := s.ReadAll()
 	assert.NoError(t, err)
 	assert.NotNil(t, read)
 	assert.Len(t, read, 1)
-	assert.Equal(t, uint64(1), read[0].ID)
 	assert.Equal(t, "Foobar", read[0].Name)
+	assert.NotEmpty(t, read[0].ID)
 	assert.NotEmpty(t, read[0].CreatedAt)
 }
 
@@ -92,72 +98,40 @@ func TestJSONWriter(t *testing.T) {
 	assert.NotNil(t, s)
 
 	// Read
-	read, err := s.Read()
+	read, err := s.ReadAll()
 	assert.NoError(t, err)
 	assert.NotNil(t, read)
 	assert.Len(t, read, 1)
-	assert.Equal(t, uint64(1), read[0].ID)
 	assert.Equal(t, "Foobar", read[0].Name)
+	assert.NotEmpty(t, read[0].ID)
 	assert.NotEmpty(t, read[0].CreatedAt)
 
 	// Create
 	data := &testJSONData{Name: "new"}
 	err = s.Create(data)
 	assert.NoError(t, err)
-	assert.Equal(t, uint64(2), data.ID)
 	assert.Equal(t, "new", data.Name)
+	assert.NotEmpty(t, data.ID)
 	assert.NotEmpty(t, data.CreatedAt)
 
-	read, err = s.Read()
+	read, err = s.ReadAll()
 	assert.NoError(t, err)
 	assert.NotNil(t, read)
 	assert.Len(t, read, 2)
-	assert.Equal(t, uint64(2), read[1].ID)
+	assert.NotEmpty(t, read[1].ID)
 	assert.Equal(t, "new", read[1].Name)
 	assert.NotEmpty(t, read[1].CreatedAt)
 
-	// Upsert - Update
-	data.Name = "upserted"
-	err = s.Upsert(data)
+	// Update
+	data.Name = "updated"
+	err = s.Update(data.GetID(), data)
 	assert.NoError(t, err)
-	assert.Equal(t, uint64(2), data.ID)
-	assert.Equal(t, "upserted", data.Name)
-	assert.NotEmpty(t, data.CreatedAt)
 
-	read, err = s.Read()
+	read, err = s.ReadAll()
 	assert.NoError(t, err)
 	assert.NotNil(t, read)
 	assert.Len(t, read, 2)
-	assert.Equal(t, uint64(2), read[1].ID)
-	assert.Equal(t, "upserted", read[1].Name)
-	assert.NotEmpty(t, read[1].CreatedAt)
-
-	// Upsert - Insert
-	upsert := &testJSONData{Name: "upsert"}
-	err = s.Upsert(upsert)
-	assert.NoError(t, err)
-	assert.Equal(t, uint64(3), upsert.ID)
-	assert.Equal(t, "upsert", upsert.Name)
-	assert.NotEmpty(t, upsert.CreatedAt)
-
-	read, err = s.Read()
-	assert.NoError(t, err)
-	assert.NotNil(t, read)
-	assert.Len(t, read, 3)
-	assert.Equal(t, uint64(3), read[2].ID)
-	assert.Equal(t, "upsert", read[2].Name)
-	assert.NotEmpty(t, read[2].CreatedAt)
-
-	// Update
-	data.Name = "updated"
-	err = s.Update(data)
-	assert.NoError(t, err)
-
-	read, err = s.Read()
-	assert.NoError(t, err)
-	assert.NotNil(t, read)
-	assert.Len(t, read, 3)
-	assert.Equal(t, uint64(2), read[1].ID)
+	assert.NotEmpty(t, read[1].ID)
 	assert.Equal(t, "updated", read[1].Name)
 	assert.NotEmpty(t, read[1].CreatedAt)
 
@@ -165,13 +139,13 @@ func TestJSONWriter(t *testing.T) {
 	err = s.Delete(data.ID)
 	assert.NoError(t, err)
 
-	read, err = s.Read()
+	read, err = s.ReadAll()
 	assert.NoError(t, err)
 	assert.NotNil(t, read)
-	assert.Len(t, read, 2)
+	assert.Len(t, read, 1)
 
 	// Update - Not Exists
-	err = s.Update(data)
+	err = s.Update(data.GetID(), data)
 	assert.Error(t, err)
 
 	// Delete - Not Exists

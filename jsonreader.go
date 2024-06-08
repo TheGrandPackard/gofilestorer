@@ -4,17 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/spf13/afero"
 )
 
-type jsonReader[D reader] struct {
-	storer[D]
+type jsonReader[V reader] struct {
+	storer[V]
 }
 
 // Create a new reader that is backed by a JSON file
-func NewJSONReader[D reader](fs afero.Fs, fileName string) (Reader[D], error) {
-	s := &jsonReader[D]{
-		storer: storer[D]{
+func NewJSONReader[V reader](fs afero.Fs, fileName string) (Reader[V], error) {
+	s := &jsonReader[V]{
+		storer: storer[V]{
 			fs:       fs,
 			fileName: fileName,
 		},
@@ -31,7 +32,7 @@ func NewJSONReader[D reader](fs afero.Fs, fileName string) (Reader[D], error) {
 }
 
 // read the file into the storer
-func (s *jsonReader[D]) readFile() error {
+func (s *jsonReader[V]) readFile() error {
 	// Read file from disk
 	dataBytes, err := afero.ReadFile(s.fs, s.fileName)
 	if err != nil {
@@ -39,21 +40,19 @@ func (s *jsonReader[D]) readFile() error {
 	}
 
 	// Unmarshal JSON to struct
-	data := []D{}
+	data := []V{}
 	err = json.Unmarshal(dataBytes, &data)
 	if err != nil {
 		return fmt.Errorf("error unmarshaling data: %w", err)
 	}
-
 	s.data = data
 
+	// Create map of data
+	dataMap := map[uuid.UUID]*V{}
+	for _, record := range data {
+		dataMap[record.GetID()] = &record
+	}
+	s.dataMap = dataMap
+
 	return nil
-}
-
-// read all records from the storer
-func (s *jsonReader[D]) Read() ([]D, error) {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-
-	return s.data, nil
 }

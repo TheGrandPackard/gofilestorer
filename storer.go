@@ -4,44 +4,62 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/spf13/afero"
 )
 
-type Reader[D any] interface {
-	readFile() error
-
-	Read() ([]D, error)
-}
-
-type Writer[D any] interface {
-	readFile() error
-	writeFile() error
-
-	Create(D) error
-	Read() ([]D, error)
-	Update(D) error
-	Delete(uint64) error
-	Upsert(D) error
-}
-
-type storer[D any] struct {
+type storer[V any] struct {
 	fs       afero.Fs
 	fileName string
 	mutex    sync.RWMutex
-	data     []D
+	data     []V
+	dataMap  map[uuid.UUID]*V
 }
 
-type Data struct {
-	ID        uint64    `json:"id" csv:"id"`
-	CreatedAt time.Time `json:"created_at" csv:"created_at"`
+type Reader[V reader] interface {
+	readFile() error
+
+	ReadAll() ([]V, error)
+	ReadOne(uuid.UUID) (*V, error)
 }
 
 type reader interface {
-	GetID() uint64
+	GetID() uuid.UUID
+}
+
+// read all records from the storer
+func (s *storer[V]) ReadAll() ([]V, error) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	return s.data, nil
+}
+
+// read a record from the storer
+func (s *storer[V]) ReadOne(id uuid.UUID) (*V, error) {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+
+	_, ok := s.dataMap[id]
+	if ok {
+
+		return s.dataMap[id], nil
+	}
+
+	return nil, ErrorDataNotExists
+}
+
+type Writer[V writer] interface {
+	Reader[V]
+	writeFile() error
+
+	Create(V) error
+	Update(uuid.UUID, V) error
+	Delete(uuid.UUID) error
 }
 
 type writer interface {
-	GetID() uint64
-	SetID(uint64)
+	GetID() uuid.UUID
+	SetID(uuid.UUID)
 	SetCreatedAt(time.Time)
+	SetUpdatedAt(time.Time)
 }

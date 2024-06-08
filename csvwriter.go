@@ -13,7 +13,7 @@ type csvWriter[K comparable, V writer[K]] struct {
 }
 
 // Create a new writer that is backed by a CSV file
-func NewCSVWriter[K comparable, V writer[K]](fs afero.Fs, fileName string, separator rune, newIDFunc func(data []V) K) (Writer[K, V], error) {
+func NewCSVWriter[K comparable, V writer[K]](fs afero.Fs, fileName string, separator rune, newIDFunc func([]V, V) K) (Writer[K, V], error) {
 	s := &csvWriter[K, V]{
 		csvReader: csvReader[K, V]{
 			storer: storer[K, V]{
@@ -56,7 +56,7 @@ func (s *csvWriter[K, V]) Create(data V) (V, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	id := s.newIDFunc(s.data)
+	id := s.newIDFunc(s.data, data)
 	data.SetID(id)
 	data.SetCreatedAt(time.Now())
 	s.data = append(s.data, data)

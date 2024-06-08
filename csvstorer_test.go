@@ -81,7 +81,7 @@ func TestCSVReader(t *testing.T) {
 func TestCSVWriter(t *testing.T) {
 	fs := getCSVFilesystem(t)
 
-	newIdFunc := func(data []*testCSVData) uuid.UUID {
+	newIdFunc := func(dataArray []*testCSVData, data *testCSVData) uuid.UUID {
 		return uuid.New()
 	}
 

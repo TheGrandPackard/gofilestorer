@@ -9,29 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type testJSONDataUUID struct {
-	ID        uuid.UUID  `json:"id"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt *time.Time `json:"updated_at"`
-	Name      string     `json:"name"`
-}
-
-func (d *testJSONDataUUID) GetID() uuid.UUID {
-	return d.ID
-}
-
-func (d *testJSONDataUUID) SetID(id uuid.UUID) {
-	d.ID = id
-}
-
-func (d *testJSONDataUUID) SetCreatedAt(createdAt time.Time) {
-	d.CreatedAt = createdAt
-}
-
-func (d *testJSONDataUUID) SetUpdatedAt(updatedAt time.Time) {
-	d.UpdatedAt = &updatedAt
-}
-
 func getJSONFilesystem(t *testing.T) afero.Fs {
 	fs := afero.NewMemMapFs()
 	// create test files and directories
@@ -53,10 +30,41 @@ func getJSONFilesystem(t *testing.T) afero.Fs {
 		}
 	]`), 0644)
 	assert.NoError(t, err)
+	err = afero.WriteFile(fs, "string.json", []byte(`[
+		{
+			"id": "foobar",
+			"created_at": "2022-12-27T12:45:51.8347046-08:00",
+			"name": "Foobar"
+		}
+	]`), 0644)
+	assert.NoError(t, err)
 	err = afero.WriteFile(fs, "invalid.json", []byte(``), 0644)
 	assert.NoError(t, err)
 
 	return fs
+}
+
+type testJSONDataUUID struct {
+	ID        uuid.UUID  `json:"id"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt *time.Time `json:"updated_at"`
+	Name      string     `json:"name"`
+}
+
+func (d *testJSONDataUUID) GetID() uuid.UUID {
+	return d.ID
+}
+
+func (d *testJSONDataUUID) SetID(id uuid.UUID) {
+	d.ID = id
+}
+
+func (d *testJSONDataUUID) SetCreatedAt(createdAt time.Time) {
+	d.CreatedAt = createdAt
+}
+
+func (d *testJSONDataUUID) SetUpdatedAt(updatedAt time.Time) {
+	d.UpdatedAt = &updatedAt
 }
 
 func TestJSONReader(t *testing.T) {
@@ -90,7 +98,7 @@ func TestJSONReader(t *testing.T) {
 func TestJSONWriterUUID(t *testing.T) {
 	fs := getJSONFilesystem(t)
 
-	newIdFunc := func(data []*testJSONDataUUID) uuid.UUID {
+	newIdFunc := func(_ []*testJSONDataUUID, _ *testJSONDataUUID) uuid.UUID {
 		return uuid.New()
 	}
 
@@ -191,8 +199,8 @@ func (d *testJSONDataInt64) SetUpdatedAt(updatedAt time.Time) {
 func TestJSONWriterInt64(t *testing.T) {
 	fs := getJSONFilesystem(t)
 
-	newIdFunc := func(data []*testJSONDataInt64) int64 {
-		return int64(len(data) + 1)
+	newIdFunc := func(dataArray []*testJSONDataInt64, _ *testJSONDataInt64) int64 {
+		return int64(len(dataArray) + 1)
 	}
 
 	// Read non-existant file
@@ -216,7 +224,7 @@ func TestJSONWriterInt64(t *testing.T) {
 	assert.NotNil(t, read)
 	assert.Len(t, read, 1)
 	assert.Equal(t, "Foobar", read[0].Name)
-	assert.NotEmpty(t, int64(1), read[0].ID)
+	assert.Equal(t, int64(1), read[0].ID)
 	assert.NotEmpty(t, read[0].CreatedAt)
 
 	// Create
@@ -245,6 +253,107 @@ func TestJSONWriterInt64(t *testing.T) {
 	assert.NotNil(t, read)
 	assert.Len(t, read, 2)
 	assert.Equal(t, int64(2), read[1].ID)
+	assert.Equal(t, "updated", read[1].Name)
+	assert.NotEmpty(t, read[1].CreatedAt)
+
+	// Delete
+	err = s.Delete(data.ID)
+	assert.NoError(t, err)
+
+	read, err = s.ReadAll()
+	assert.NoError(t, err)
+	assert.NotNil(t, read)
+	assert.Len(t, read, 1)
+
+	// Update - Not Exists
+	_, err = s.Update(data.GetID(), data)
+	assert.Error(t, err)
+
+	// Delete - Not Exists
+	err = s.Delete(data.ID)
+	assert.Error(t, err)
+}
+
+type testJSONDataString struct {
+	ID        string     `json:"id"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt *time.Time `json:"updated_at"`
+	Name      string     `json:"name"`
+}
+
+func (d *testJSONDataString) GetID() string {
+	return d.ID
+}
+
+func (d *testJSONDataString) SetID(id string) {
+	d.ID = id
+}
+
+func (d *testJSONDataString) SetCreatedAt(createdAt time.Time) {
+	d.CreatedAt = createdAt
+}
+
+func (d *testJSONDataString) SetUpdatedAt(updatedAt time.Time) {
+	d.UpdatedAt = &updatedAt
+}
+
+func TestJSONDataString(t *testing.T) {
+	fs := getJSONFilesystem(t)
+
+	newIdFunc := func(dataArray []*testJSONDataString, data *testJSONDataString) string {
+		return data.ID
+	}
+
+	// Read non-existant file
+	s, err := NewJSONWriter[string, *testJSONDataString](fs, "./foobar.json", newIdFunc)
+	assert.Error(t, err)
+	assert.Nil(t, s)
+
+	// Read invalid file
+	s, err = NewJSONWriter[string, *testJSONDataString](fs, "./data/invalid.json", newIdFunc)
+	assert.Error(t, err)
+	assert.Nil(t, s)
+
+	// Read test file
+	s, err = NewJSONWriter[string, *testJSONDataString](fs, "./string.json", newIdFunc)
+	assert.NoError(t, err)
+	assert.NotNil(t, s)
+
+	// Read
+	read, err := s.ReadAll()
+	assert.NoError(t, err)
+	assert.NotNil(t, read)
+	assert.Len(t, read, 1)
+	assert.Equal(t, "foobar", read[0].ID)
+	assert.Equal(t, "Foobar", read[0].Name)
+	assert.NotEmpty(t, read[0].CreatedAt)
+
+	// Create
+	data := &testJSONDataString{ID: "new", Name: "New"}
+	_, err = s.Create(data)
+	assert.NoError(t, err)
+	assert.Equal(t, "new", data.ID)
+	assert.Equal(t, "New", data.Name)
+	assert.NotEmpty(t, data.CreatedAt)
+
+	read, err = s.ReadAll()
+	assert.NoError(t, err)
+	assert.NotNil(t, read)
+	assert.Len(t, read, 2)
+	assert.Equal(t, "new", read[1].ID)
+	assert.Equal(t, "New", read[1].Name)
+	assert.NotEmpty(t, read[1].CreatedAt)
+
+	// Update
+	data.Name = "updated"
+	_, err = s.Update(data.GetID(), data)
+	assert.NoError(t, err)
+
+	read, err = s.ReadAll()
+	assert.NoError(t, err)
+	assert.NotNil(t, read)
+	assert.Len(t, read, 2)
+	assert.Equal(t, "new", read[1].ID)
 	assert.Equal(t, "updated", read[1].Name)
 	assert.NotEmpty(t, read[1].CreatedAt)
 

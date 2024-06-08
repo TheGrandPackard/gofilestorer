@@ -13,7 +13,7 @@ type storer[K comparable, V any] struct {
 	mutex     sync.RWMutex
 	data      []V
 	dataMap   map[K]V
-	newIDFunc func(data []V) K
+	newIDFunc func(dataArray []V, data V) K
 }
 
 type Reader[K comparable, V reader[K]] interface {

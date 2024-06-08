@@ -13,7 +13,7 @@ type jsonWriter[K comparable, V writer[K]] struct {
 }
 
 // Create a new writer that is backed by a JSON file
-func NewJSONWriter[K comparable, V writer[K]](fs afero.Fs, fileName string, newIDFunc func(data []V) K) (Writer[K, V], error) {
+func NewJSONWriter[K comparable, V writer[K]](fs afero.Fs, fileName string, newIDFunc func([]V, V) K) (Writer[K, V], error) {
 	s := &jsonWriter[K, V]{
 		jsonReader: jsonReader[K, V]{
 			storer: storer[K, V]{
@@ -55,7 +55,7 @@ func (s *jsonWriter[K, V]) Create(data V) (V, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	id := s.newIDFunc(s.data)
+	id := s.newIDFunc(s.data, data)
 	data.SetID(id)
 	data.SetCreatedAt(time.Now())
 	s.data = append(s.data, data)

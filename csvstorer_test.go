@@ -54,17 +54,17 @@ func TestCSVReader(t *testing.T) {
 	fs := getCSVFilesystem(t)
 
 	// Read non-existant file
-	s, err := NewCSVReader[*testCSVData](fs, "./foobar.json", ';')
+	s, err := NewCSVReader[uuid.UUID, *testCSVData](fs, "./foobar.json", ';')
 	assert.Error(t, err)
 	assert.Nil(t, s)
 
 	// Read invalid file
-	s, err = NewCSVReader[*testCSVData](fs, "./data/invalid.json", ';')
+	s, err = NewCSVReader[uuid.UUID, *testCSVData](fs, "./data/invalid.json", ';')
 	assert.Error(t, err)
 	assert.Nil(t, s)
 
 	// Read test file
-	s, err = NewCSVReader[*testCSVData](fs, "./data.json", ';')
+	s, err = NewCSVReader[uuid.UUID, *testCSVData](fs, "./data.json", ';')
 	assert.NoError(t, err)
 	assert.NotNil(t, s)
 
@@ -81,18 +81,22 @@ func TestCSVReader(t *testing.T) {
 func TestCSVWriter(t *testing.T) {
 	fs := getCSVFilesystem(t)
 
+	newIdFunc := func(data []*testCSVData) uuid.UUID {
+		return uuid.New()
+	}
+
 	// Read non-existant file
-	s, err := NewCSVWriter[*testCSVData](fs, "./foobar.json", ';')
+	s, err := NewCSVWriter[uuid.UUID, *testCSVData](fs, "./foobar.json", ';', newIdFunc)
 	assert.Error(t, err)
 	assert.Nil(t, s)
 
 	// Read invalid file
-	s, err = NewCSVWriter[*testCSVData](fs, "./data/invalid.json", ';')
+	s, err = NewCSVWriter[uuid.UUID, *testCSVData](fs, "./data/invalid.json", ';', newIdFunc)
 	assert.Error(t, err)
 	assert.Nil(t, s)
 
 	// Read test file
-	s, err = NewCSVWriter[*testCSVData](fs, "./data.json", ';')
+	s, err = NewCSVWriter[uuid.UUID, *testCSVData](fs, "./data.json", ';', newIdFunc)
 	assert.NoError(t, err)
 	assert.NotNil(t, s)
 

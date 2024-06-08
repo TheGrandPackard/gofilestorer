@@ -4,18 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/spf13/afero"
 )
 
-type jsonReader[V reader] struct {
-	storer[V]
+type jsonReader[K comparable, V reader[K]] struct {
+	storer[K, V]
 }
 
 // Create a new reader that is backed by a JSON file
-func NewJSONReader[V reader](fs afero.Fs, fileName string) (Reader[V], error) {
-	s := &jsonReader[V]{
-		storer: storer[V]{
+func NewJSONReader[K comparable, V reader[K]](fs afero.Fs, fileName string) (Reader[K, V], error) {
+	s := &jsonReader[K, V]{
+		storer: storer[K, V]{
 			fs:       fs,
 			fileName: fileName,
 		},
@@ -32,7 +31,7 @@ func NewJSONReader[V reader](fs afero.Fs, fileName string) (Reader[V], error) {
 }
 
 // read the file into the storer
-func (s *jsonReader[V]) readFile() error {
+func (s *jsonReader[K, V]) readFile() error {
 	// Read file from disk
 	dataBytes, err := afero.ReadFile(s.fs, s.fileName)
 	if err != nil {
@@ -48,7 +47,7 @@ func (s *jsonReader[V]) readFile() error {
 	s.data = data
 
 	// Create map of data
-	dataMap := map[uuid.UUID]*V{}
+	dataMap := map[K]*V{}
 	for _, record := range data {
 		dataMap[record.GetID()] = &record
 	}

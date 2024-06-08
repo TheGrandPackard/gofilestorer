@@ -4,20 +4,19 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/spf13/afero"
 	"github.com/trimmer-io/go-csv"
 )
 
-type csvReader[V reader] struct {
-	storer[V]
+type csvReader[K comparable, V reader[K]] struct {
+	storer[K, V]
 	separator rune
 }
 
 // Create a new reader that is backed by a CSV file
-func NewCSVReader[V reader](fs afero.Fs, fileName string, separator rune) (Reader[V], error) {
-	s := &csvReader[V]{
-		storer: storer[V]{
+func NewCSVReader[K comparable, V reader[K]](fs afero.Fs, fileName string, separator rune) (Reader[K, V], error) {
+	s := &csvReader[K, V]{
+		storer: storer[K, V]{
 			fs:       fs,
 			fileName: fileName,
 		},
@@ -35,7 +34,7 @@ func NewCSVReader[V reader](fs afero.Fs, fileName string, separator rune) (Reade
 }
 
 // read the file into the storer
-func (s *csvReader[V]) readFile() error {
+func (s *csvReader[K, V]) readFile() error {
 	// Read file from disk
 	dataBytes, err := afero.ReadFile(s.fs, s.fileName)
 	if err != nil {
@@ -54,7 +53,7 @@ func (s *csvReader[V]) readFile() error {
 	s.data = data
 
 	// Create map of data
-	dataMap := map[uuid.UUID]*V{}
+	dataMap := map[K]*V{}
 	for _, record := range data {
 		dataMap[record.GetID()] = &record
 	}

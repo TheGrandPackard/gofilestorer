@@ -4,38 +4,38 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/spf13/afero"
 )
 
-type storer[V any] struct {
-	fs       afero.Fs
-	fileName string
-	mutex    sync.RWMutex
-	data     []V
-	dataMap  map[uuid.UUID]*V
+type storer[K comparable, V any] struct {
+	fs        afero.Fs
+	fileName  string
+	mutex     sync.RWMutex
+	data      []V
+	dataMap   map[K]*V
+	newIDFunc func(data []V) K
 }
 
-type Reader[V reader] interface {
+type Reader[K comparable, V reader[K]] interface {
 	readFile() error
 
 	ReadAll() ([]V, error)
-	ReadOne(uuid.UUID) (*V, error)
+	ReadOne(K) (*V, error)
 }
 
-type reader interface {
-	GetID() uuid.UUID
+type reader[K comparable] interface {
+	GetID() K
 }
 
 // read all records from the storer
-func (s *storer[V]) ReadAll() ([]V, error) {
+func (s *storer[K, V]) ReadAll() ([]V, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	return s.data, nil
 }
 
 // read a record from the storer
-func (s *storer[V]) ReadOne(id uuid.UUID) (*V, error) {
+func (s *storer[K, V]) ReadOne(id K) (*V, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -48,18 +48,18 @@ func (s *storer[V]) ReadOne(id uuid.UUID) (*V, error) {
 	return nil, ErrorDataNotExists
 }
 
-type Writer[V writer] interface {
-	Reader[V]
+type Writer[K comparable, V writer[K]] interface {
+	Reader[K, V]
 	writeFile() error
 
 	Create(V) error
-	Update(uuid.UUID, V) error
-	Delete(uuid.UUID) error
+	Update(K, V) error
+	Delete(K) error
 }
 
-type writer interface {
-	GetID() uuid.UUID
-	SetID(uuid.UUID)
+type writer[K comparable] interface {
+	GetID() K
+	SetID(K)
 	SetCreatedAt(time.Time)
 	SetUpdatedAt(time.Time)
 }

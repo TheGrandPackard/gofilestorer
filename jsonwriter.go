@@ -5,21 +5,21 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/spf13/afero"
 )
 
-type jsonWriter[V writer] struct {
-	jsonReader[V]
+type jsonWriter[K comparable, V writer[K]] struct {
+	jsonReader[K, V]
 }
 
 // Create a new writer that is backed by a JSON file
-func NewJSONWriter[V writer](fs afero.Fs, fileName string) (Writer[V], error) {
-	s := &jsonWriter[V]{
-		jsonReader: jsonReader[V]{
-			storer: storer[V]{
-				fs:       fs,
-				fileName: fileName,
+func NewJSONWriter[K comparable, V writer[K]](fs afero.Fs, fileName string, newIDFunc func(data []V) K) (Writer[K, V], error) {
+	s := &jsonWriter[K, V]{
+		jsonReader: jsonReader[K, V]{
+			storer: storer[K, V]{
+				fs:        fs,
+				fileName:  fileName,
+				newIDFunc: newIDFunc,
 			},
 		},
 	}
@@ -35,7 +35,7 @@ func NewJSONWriter[V writer](fs afero.Fs, fileName string) (Writer[V], error) {
 }
 
 // write the file from the storer
-func (s *jsonWriter[V]) writeFile() error {
+func (s *jsonWriter[K, V]) writeFile() error {
 	// Marshal JSON to bytes
 	dataBytes, err := json.Marshal(s.data)
 	if err != nil {
@@ -51,11 +51,11 @@ func (s *jsonWriter[V]) writeFile() error {
 }
 
 // create a new record in the storer and write changes to file
-func (s *jsonWriter[V]) Create(data V) error {
+func (s *jsonWriter[K, V]) Create(data V) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	id := uuid.New()
+	id := s.newIDFunc(s.data)
 	data.SetID(id)
 	data.SetCreatedAt(time.Now())
 	s.data = append(s.data, data)
@@ -65,7 +65,7 @@ func (s *jsonWriter[V]) Create(data V) error {
 }
 
 // update an existing record in the storer and write changes to file
-func (s *jsonWriter[V]) Update(id uuid.UUID, data V) error {
+func (s *jsonWriter[K, V]) Update(id K, data V) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -80,7 +80,7 @@ func (s *jsonWriter[V]) Update(id uuid.UUID, data V) error {
 }
 
 // delete an existing record in the storer and write changes to file
-func (s *jsonWriter[V]) Delete(id uuid.UUID) error {
+func (s *jsonWriter[K, V]) Delete(id K) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
